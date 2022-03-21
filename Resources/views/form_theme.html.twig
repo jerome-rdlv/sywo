@@ -1,0 +1,273 @@
+{% extends 'form_div_layout.html.twig' %}
+
+{%- block form_start -%}
+    {{ parent() }}
+    {% if label %}
+        <h2 class="{{ sywo_namespace }}__title">
+            {{- label -}}
+        </h2>
+    {% endif %}
+    {%- if form.vars.help -%}
+        <p class="{{ sywo_namespace }}__help">
+            {{ form.vars.help|raw }}
+        </p>
+    {%- endif -%}
+{%- endblock -%}
+
+{%- block form_label -%}
+    {% if label is not same as(false) -%}
+        {% if not compound -%}
+            {% set label_attr = label_attr|merge({'for': id}) %}
+        {%- endif -%}
+        {% set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' ' ~ sywo_namespace ~ '__label')|trim}) %}
+        {% if disabled %}
+            {% set label_attr = label_attr|merge({'data-disabled':'true'}) %}
+        {% endif %}
+        {% if required -%}
+            {% set label_attr = label_attr|merge({'data-required':'true'}) %}
+        {%- endif -%}
+        {% if label is empty -%}
+            {%- if label_format is not empty -%}
+                {% set label = label_format|replace({
+                    '%name%': name,
+                    '%id%': id,
+                }) %}
+            {%- else -%}
+                {% set label = name|humanize %}
+            {%- endif -%}
+        {%- endif -%}
+        <{{ element|default('label') }}{% if label_attr %}{% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}{% endif %}>
+        {%- if translation_domain is same as(false) -%}
+            {{- label -}}
+        {%- else -%}
+            {{- label|trans(label_translation_parameters, translation_domain) -}}
+        {%- endif -%}
+        {%- if not compound and 'checkbox' not in block_prefixes -%}
+            {{ block('label_help') }}
+            {{ block('label_errors') }}
+        {%- endif -%}
+        </{{ element|default('label') }}>
+    {%- endif -%}
+{%- endblock form_label -%}
+
+{%- block label_errors -%}
+    {%- if errors|length > 0 -%}
+        {%- for error in errors -%}
+            <span class="{{ sywo_namespace }}__error">
+                {{- error.message -}}
+            </span>
+        {%- endfor -%}
+    {%- endif -%}
+{%- endblock -%}
+
+{%- block label_help -%}
+    {%- if help is not empty -%}
+        {%- set help_attr = help_attr|merge({class: (help_attr.class|default('') ~ ' help-text ' ~ sywo_namespace ~'__help')|trim}) -%}
+        <span id="{{ id }}_help"{% with { attr: help_attr } %}{{ block('attributes') }}{% endwith %}>
+            {%- if help_html is same as(false) -%}
+                {{- help -}}
+            {%- else -%}
+                {{- help|raw -}}
+            {%- endif -%}
+        </span>
+    {%- endif -%}
+{%- endblock -%}
+
+{%- block form_row -%}
+    {%- set widget_attr = {} -%}
+    {%- if help is not empty -%}
+        {%- set widget_attr = {attr: {'aria-describedby': id ~"_help"}} -%}
+    {%- endif -%}
+    {%- if compound and expanded -%}
+        {%- set element = 'fieldset' -%}
+    {%- endif -%}
+    {%- set row_attr = row_attr|merge({'class': sywo_namespace ~ '__row' ~ (row_attr.class is defined ? ' ' ~ row_attr.class : '') ~ (errors|length > 0 ? ' ' ~ sywo_namespace ~ '__row--error' : '')} ) -%}
+    {%- set choice_expanded = 'choice' in block_prefixes and expanded -%}
+    <{{ element|default('div') }}{% with {attr: row_attr} %}{{ block('attributes') }}{% endwith %}>
+    {{- form_label(form, null, {element: compound and expanded ? 'legend' : 'label'}) -}}
+    {%- if compound -%}
+        {{- form_help(form) -}}
+        {{- form_errors(form) -}}
+    {%- endif -%}
+    {{- form_widget(form, widget_attr) -}}
+    </{{ element|default('div') }}>
+{%- endblock form_row -%}
+
+{%- block form_errors -%}
+    {% if errors|length == 1 %}
+        {%- for error in errors -%}
+            <span class="{{ sywo_namespace }}__error">{{ error.message }}</span>
+        {%- endfor -%}
+    {% elseif errors|length > 1 %}
+        <ul class="{{ sywo_namespace }}__errors">
+            {% for error in errors %}
+                <li class="{{ sywo_namespace }}__error">{{ error.message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{%- endblock form_errors -%}
+
+{%- block choice_widget_expanded -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' ' ~ sywo_namespace ~ '__widget')|trim}) -%}
+    <div {{ block('widget_container_attributes') }}>
+        {%- for child in form %}
+            {{- block('choice_widget_expanded_item') -}}
+        {% endfor -%}
+    </div>
+{%- endblock choice_widget_expanded -%}
+
+{%- block choice_widget_expanded_item -%}
+    {%- set label_attr = child.vars.attr|default({}) -%}
+    {%- set label_attr = label_attr|merge({'for': child.vars.id}) -%}
+    {%- set label_attr = label_attr|merge({'data-disabled':'true'}) -%}
+    {%- if child.disabled %}{% set label_attr = label_attr|merge({'data-disabled':'true'}) %}{% endif -%}
+    {%- set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' ' ~ sywo_namespace ~ '__choice')|trim}) -%}
+    {%- set label_attr = label_attr|filter((v, k) => k != 'disabled') -%}
+    <label{% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}>
+        {{- form_widget(child) -}}
+        <span class="{{ sywo_namespace }}__choice-label">
+            {{- child.vars.label -}}
+            {%- if child.vars.help -%}
+                <span class="{{ sywo_namespace }}__choice-help">{{ child.vars.help|raw }}</span>
+            {%- endif -%}
+        </span>
+    </label>
+{%- endblock -%}
+
+{% block checkbox_row %}
+    {%- set widget_attr = {} -%}
+    {%- if help is not empty -%}
+        {%- set widget_attr = {attr: {'aria-describedby': id ~"_help"}} -%}
+    {%- endif -%}
+    {%- set row_attr = row_attr|merge({'class': (row_attr.class|default('') ~ ' ' ~ sywo_namespace ~ '__row')|trim}) -%}
+    <div{% with {attr: row_attr} %}{{ block('attributes') }}{% endwith %}>
+        {{- form_help(form) -}}
+        {{- form_errors(form) -}}
+        {{- form_widget(form, widget_attr) -}}
+        {{- form_label(form) -}}
+    </div>
+{% endblock %}
+
+{%- block checkbox_widget -%}
+    <span class="{{ sywo_namespace }}__deco"{% if disabled %} data-disabled="true"{% endif %}>
+        {%- if disabled and attr.checked -%}
+            <input type="hidden" name="{{ full_name }}" value="{{ value }}"/>
+        {%- endif -%}
+        {{- parent() -}}
+        <span class="{{ sywo_namespace }}__checkbox"></span>
+    </span>
+{%- endblock checkbox_widget -%}
+
+{%- block radio_widget -%}
+    <span class="{{ sywo_namespace }}__deco"{% if disabled %} data-disabled="true"{% endif %}>
+        {{- parent() -}}
+        <span class="{{ sywo_namespace }}__radio"></span>
+    </span>
+{%- endblock radio_widget -%}
+
+{% block form_help -%}
+    {%- if help is not empty -%}
+        {%- set help_attr = help_attr|merge({class: (help_attr.class|default('') ~ ' help-text ' ~ sywo_namespace ~ '__help')|trim}) -%}
+        <div id="{{ id }}_help"{% with { attr: help_attr } %}{{ block('attributes') }}{% endwith %}>
+            {%- if help_html is same as(false) -%}
+                {{- help -}}
+            {%- else -%}
+                {{- help|raw -}}
+            {%- endif -%}
+        </div>
+    {%- endif -%}
+{%- endblock form_help %}
+
+{%- block cgv_consent_label -%}
+    {% set label_attr = label_attr|merge({'for': id}) %}
+    {% if required -%}
+        {% set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' required')|trim}) %}
+    {%- endif -%}
+    <{{ element|default('label') }}{% if label_attr %}{% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}{% endif %}>
+    {%- if translation_domain is same as(false) -%}
+        {{- label|raw -}}
+    {%- else -%}
+        {{- label|trans(label_translation_parameters, translation_domain)|raw -}}
+    {%- endif -%}
+    </{{ element|default('label') }}>
+{%- endblock -%}
+
+{%- block cgv_consent_row -%}
+    {% set row_attr = row_attr|merge({'class': (row_attr.class|default('') ~ ' ' ~ sywo_namespace ~ '__consent')|trim}) %}
+    {{ form_row(form, {row_attr: row_attr}) }}
+{%- endblock -%}
+
+{%- block recaptcha_row -%}
+    {%- if enabled or errors|length > 0 -%}
+        <div class="{{ sywo_namespace }}__recaptcha {{ sywo_namespace }}__row">
+            {{- form_errors(form) -}}
+            {%- if enabled -%}
+                <noscript>{{ fallback }}</noscript>
+                <div id="{{ id }}" class="g-recaptcha" data-sitekey="{{ sitekey }}"></div>
+                <script>document.getElementById('{{ id }}').innerText = '{{ loading }}';</script>
+            {%- endif -%}
+        </div>
+        {% if script %}
+            <script src="{{ script }}" async defer></script>
+        {% endif %}
+    {%- endif -%}
+{%- endblock -%}
+
+{%- block intl_tel_row -%}
+    {{ form_row(form.tel) }}
+{%- endblock -%}
+
+{% block intl_tel_tel_widget %}
+    {{ block('tel_widget') }}
+    {% if form.parent.intl %}
+        {{ form_widget(form.parent.intl) }}
+    {% endif %}
+{% endblock %}
+
+{%- block end_row -%}
+    {{ form_rest(form) }}
+{%- endblock -%}
+
+{% block date_widget %}
+    {%- if widget == 'single_text' -%}
+        {% set attr = attr|merge({
+            'class': (attr.class|default('') ~ ' date-input')|trim,
+        }) %}
+        {{ block('form_widget_simple') }}
+    {%- else -%}
+        {{ parent() }}
+    {%- endif -%}
+{% endblock %}
+
+{% block file_widget %}
+
+    {% if form.vars.document %}
+        <p>
+            {% if form.vars.document.mimeType starts with 'image/' %}
+                <img src="{{ form.vars.document.dataUri }}" alt="{{ form.vars.document.Nom }}"
+                     class="{{ sywo_namespace }}__img-preview">
+            {% else %}
+                <span class="{{ sywo_namespace }}__file">
+                    {{ form.vars.document.Nom }}
+                </span>
+            {% endif %}
+        </p>
+    {% endif %}
+
+    {{ form_widget(form) }}
+
+{% endblock %}
+
+{% block cycle_widget %}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' ' ~ sywo_namespace ~ '__widget')|trim}) -%}
+    {%- set group = null %}
+    <div {{ block('widget_container_attributes') }}>
+        {%- for child in form %}
+            {% if group != child.vars.group %}
+                {% set group = child.vars.group %}
+                <p class="{{ sywo_namespace }}__choice-group">{{ group }}</p>
+            {% endif %}
+            {{- block('choice_widget_expanded_item') -}}
+        {% endfor -%}
+    </div>
+{% endblock %}

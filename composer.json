@@ -1,0 +1,24 @@
+{
+    "name": "jerome-rdlv/sywo",
+    "description": "Symfony in WordPress integration",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Rdlv\\WordPress\\Sywo\\": ""
+        }
+    },
+    "authors": [
+        {
+            "name": "Jérôme Mulsant",
+            "email": "jerome@rue-de-la-vieille.fr"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "symfony/console": "^5.0",
+        "symfony/finder": "^5.0",
+        "wp-cli/wp-cli": "^2.0",
+        "wp-cli/i18n-command": "^2.0"
+    }
+}
