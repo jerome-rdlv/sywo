@@ -14,7 +14,7 @@ class DecorateTwigEnvironment implements CompilerPassInterface
         if ($container->hasDefinition('twig')) {
             $definition = $container->getDefinition('twig');
             $definition->setClass(Environment::class);
-            $definition->addMethodCall('setHooks', [new Reference('hooks')]);
+            $definition->addMethodCall('setDispatcher', [new Reference('event_dispatcher')]);
         }
     }
 }

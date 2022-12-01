@@ -86,21 +86,22 @@ class Environment
                              *                                     Default null, meaning the entire path was to be consulted.
                              * @param string[] $paths The paths to search for, based on $path and $segments.
                              */
-                            'function'      => function ($site, $domain, $path) {
+                            'function' => function ($site, $domain, $path) {
                                 if ($domain === 'localhost') {
                                     global $current_site;
                                     $result = get_sites(
                                         [
-                                            'number'                 => 1,
+                                            'number' => 1,
                                             'update_site_meta_cache' => false,
-                                            'domain'                 => $current_site->domain,
-                                            'path'                   => '/',
+                                            'domain' => $current_site->domain,
+                                            'path' => '/',
                                         ]
                                     );
                                     /** @var WP_Site $site */
                                     $site = array_shift($result);
-                                    $this->output->warning(sprintf('Warning: Using default blog %s',
-                                                                   $site->domain));
+                                    $this->output->warning(
+                                        sprintf('Warning: Using default blog %s', $site->domain)
+                                    );
                                 }
                                 return $site;
                             },
@@ -111,7 +112,7 @@ class Environment
         }
 
         // load WordPress wp-config.php
-        $path = $_SERVER['PWD'];
+        $path = $_SERVER['WEB_DOCUMENT_ROOT'];
         while ($path !== '/' && !file_exists($path . '/wp-config.php')) {
             $path = dirname($path);
         }

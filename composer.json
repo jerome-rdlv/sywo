@@ -5,7 +5,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Rdlv\\WordPress\\Sywo\\": ""
+            "Rdlv\\WordPress\\Sywo\\": "src"
         }
     },
     "authors": [
@@ -16,9 +16,14 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "symfony/console": "^5.0",
-        "symfony/finder": "^5.0",
-        "wp-cli/wp-cli": "^2.0",
-        "wp-cli/i18n-command": "^2.0"
+        "symfony/console": "^5.4",
+        "symfony/finder": "^5.4",
+        "symfony/http-kernel": "^5.4",
+        "wp-cli/i18n-command": "^2.0",
+        "wp-cli/wp-cli": "^2.0"
+    },
+    "suggest": {
+        "symfony/framework-bundle": "For tight integration between symfony components",
+        "symfony/translation": "For translation update command"
     }
 }

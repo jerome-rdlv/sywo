@@ -1,6 +1,6 @@
 <?php
 
-namespace Rdlv\WordPress\Sywo\Twig;
+namespace Rdlv\WordPress\Sywo\Twig\Extension;
 
 use Rdlv\WordPress\Sywo\Hooks;
 use Symfony\Component\Translation\Formatter\IntlFormatter;
@@ -9,16 +9,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 
-class SywoExtension extends AbstractExtension
+class SywoTwigExtension extends AbstractExtension
 {
     /** @var TranslatorInterface */
     private $translator;
 
     /** @var IntlFormatter */
     private $intlFormatter;
-
-    /** @var Hooks */
-    private $hooks;
 
     public function __construct(
         TranslatorInterface $translator,
@@ -50,13 +47,5 @@ class SywoExtension extends AbstractExtension
     public function formatIntl(string $pattern, array $parameters): string
     {
         return $this->intlFormatter->formatIntl($pattern, $this->translator->getLocale(), $parameters);
-    }
-
-    /**
-     * @return Hooks
-     */
-    public function getHooks(): Hooks
-    {
-        return $this->hooks;
     }
 }

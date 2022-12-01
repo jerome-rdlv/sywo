@@ -34,7 +34,7 @@ class Hooks
         $this->twig = $twig;
         $this->loader = $loader;
 
-        $this->twig && $this->add('form/form/view/finish', function (FormView $view) {
+        $this->twig && $this->add('form/view/finish', function (FormView $view) {
             if ($this->formTheme) {
                 // override form theme
                 $formRenderer = $this->twig->getRuntime(FormRenderer::class);

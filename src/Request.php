@@ -11,15 +11,11 @@ class Request extends \Symfony\Component\HttpFoundation\Request
         isset($_POST) && $_POST = self::removeMagicQuotes($_POST);
 
         $request = parent::createFromGlobals();
-        $request->setBaseUrl(rtrim(parse_url(get_permalink(), PHP_URL_PATH), '/'));
+//        $request->requestUri = $_SERVER['REQUEST_URI'];
+        $request->baseUrl = rtrim(parse_url(get_permalink(), PHP_URL_PATH), '/');
         $request->setLocale(get_locale());
 
         return $request;
-    }
-
-    public function setBaseUrl(string $baseUrl)
-    {
-        $this->baseUrl = $baseUrl;
     }
 
     /**

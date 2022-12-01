@@ -2,12 +2,13 @@
 
 namespace Rdlv\WordPress\Sywo\Command;
 
+use Symfony\Bundle\FrameworkBundle\Command\TranslationUpdateCommand as SfTranslationUpdateCommand;
 use Exception;
 use Rdlv\WordPress\Sywo\WpCliLogger;
 use ReflectionClass;
-use Symfony\Bundle\FrameworkBundle\Command\TranslationUpdateCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -17,11 +18,11 @@ use Symfony\Component\HttpKernel\KernelInterface;
 use WP_CLI;
 use WP_CLI\I18n\MakePotCommand;
 
-class TranslationsCommand extends Command
+class TranslationUpdateCommand extends Command
 {
     protected static $defaultName = 'sywo:translations:update';
 
-    /** @var TranslationUpdateCommand */
+    /** @var SfTranslationUpdateCommand */
     private $translationUpdateCommand;
 
     private $defaultTransPath;
@@ -31,7 +32,7 @@ class TranslationsCommand extends Command
     private $headers = null;
 
     public function __construct(
-        TranslationUpdateCommand $translationUpdateCommand,
+        SfTranslationUpdateCommand $translationUpdateCommand,
         string $defaultTransPath = null,
         array $transPaths = []
     ) {
@@ -46,7 +47,9 @@ class TranslationsCommand extends Command
     {
         $this->setDefinition(
             [
-                new InputOption('domain', 'd', InputOption::VALUE_REQUIRED, 'Text domain'),
+                new InputArgument('bundle', InputArgument::OPTIONAL,
+                                  'The bundle name or directory where to load the messages'),
+                new InputOption('domain', 'd', InputOption::VALUE_REQUIRED, 'Specify the domain to extract'),
                 new InputOption('path', 'p', InputOption::VALUE_REQUIRED, 'Domain path (languages)'),
             ]
         );
@@ -62,8 +65,11 @@ class TranslationsCommand extends Command
         }
 
         try {
+            $output->writeln('Extract from Twig templates');
             $this->extractFromSymfony($input, $output);
+            $output->writeln('Extract from WordPress');
             $this->extractFromWordPress($input, $output);
+            $output->writeln('Update translations from POT');
             $this->updateTranslations($input, $output);
         } catch (Exception $e) {
             $output->error($e->getMessage());
@@ -134,12 +140,16 @@ class TranslationsCommand extends Command
         $locale = '__';
         $command = clone $this->translationUpdateCommand;
         $args = [
-            '--force'  => true,
+            '--force' => true,
+            '--prefix' => '',
             '--format' => 'po',
-            'locale'   => $locale,
+            'locale' => $locale,
         ];
         if ($domain) {
             $args['--domain'] = $domain;
+        }
+        if ($bundle = $input->getArgument('bundle')) {
+            $args['bundle'] = $bundle;
         }
         $subCommandInput = new ArrayInput($args, $command->getDefinition());
         $subCommandInput->setInteractive(false);
@@ -170,15 +180,15 @@ class TranslationsCommand extends Command
         $domain = $this->getDomain($input);
         $path = $this->getPath($input);
 
-        $potPath = sprintf('%s/%s.pot', $path, $domain);
+        $potPath = sprintf('%s/%s/%s.pot', $this->getProjectDir(), $path, $domain);
         $args = [
-            './',
+            $this->getProjectDir(),
             $potPath,
         ];
         $assoc_args = [
-            'merge'   => sprintf('%s/%s.twig.pot', $path, $domain),
+            'merge' => sprintf('%s/%s/%s.twig.pot', $this->getProjectDir(), $path, $domain),
             'skip-js' => true,
-            'domain'  => $domain,
+            'domain' => $domain,
         ];
 
         $this->loadwpCli($output);
@@ -202,7 +212,7 @@ class TranslationsCommand extends Command
     {
         $commands = [
             'msgmerge -V' => 'msgmerge command not available for PO file update.',
-            'msgfmt -V'   => 'msgfmt command not available for MO file generation.',
+            'msgfmt -V' => 'msgfmt command not available for MO file generation.',
         ];
         foreach ($commands as $command => $message) {
             exec($command, $out, $result);
@@ -212,7 +222,7 @@ class TranslationsCommand extends Command
         }
 
         $domain = $this->getDomain($input);
-        $path = $this->getPath($input);
+        $path = $this->getProjectDir() . '/' . $this->getPath($input);
 
         $finder = new Finder();
         $finder->files()->in($path)->name(sprintf('%s.*.po', $domain))->name(sprintf('%s+intl-icu.*.po', $domain));
@@ -262,6 +272,6 @@ class TranslationsCommand extends Command
      */
     protected function getPath(InputInterface $input)
     {
-        return trim($input->getOption('path') ?: $this->getHeader('DomainPath') ?: 'languages', '/');
+        return trim($input->getOption('path') ?: $this->getHeader('DomainPath') ?: 'translations', '/');
     }
 }
