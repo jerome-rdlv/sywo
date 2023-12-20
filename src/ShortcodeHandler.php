@@ -49,6 +49,11 @@ class ShortcodeHandler
         $this->listeners[] = $listener;
     }
 
+    public function is_registered_post($post_id)
+    {
+        return in_array($post_id, $this->get_registered_post_ids());
+    }
+
     public function early_loading()
     {
         // do not display in archive nor admin
@@ -57,9 +62,11 @@ class ShortcodeHandler
         }
 
         global $post;
-        if ($post && in_array($post->ID, $this->get_registered_post_ids())) {
-            if (($s = $this->has_shortcode($post->post_content)) !== false) {
-                $this->load($s[0], $s[1]);
+        if ($post && $this->is_registered_post($post->ID)) {
+            if (($shortcodes = $this->get_shortcodes($post->post_content)) !== false) {
+                foreach ($shortcodes as $shortcode) {
+                    $this->load($shortcode[0], $shortcode[1]);
+                }
             }
         }
     }
@@ -98,17 +105,19 @@ class ShortcodeHandler
 
     /**
      * @param $content
-     * @return array|false The shortcode attributes and content if found, false otherwise
+     * @return array|null The shortcode attributes and content if found, false otherwise
      */
-    private function has_shortcode($content)
+    private function get_shortcodes($content)
     {
-        if (preg_match('/' . get_shortcode_regex([$this->shortcode]) . '/s', $content, $m)) {
-            return [
-                shortcode_parse_atts($m[3] ?? '') ?: [],
-                $m[5],
-            ];
+        if (preg_match_all('/' . get_shortcode_regex([$this->shortcode]) . '/s', $content, $matches, PREG_SET_ORDER)) {
+            $shortcodes = [];
+            foreach ($matches as $match) {
+                $atts = shortcode_parse_atts($match[3] ?? '') ?: [];
+                $shortcodes[sha1(serialize($atts))] = [$atts, $match[5]];
+            }
+            return $shortcodes;
         }
-        return false;
+        return null;
     }
 
     public function update_registered_post_ids(int $id, WP_Post $post)
@@ -116,7 +125,7 @@ class ShortcodeHandler
         $post_ids = $this->get_registered_post_ids();
         $index = array_search($id, $post_ids);
         $updated = false;
-        if ($post->post_status === 'publish' && $this->has_shortcode($post->post_content)) {
+        if ($post->post_status === 'publish' && $this->get_shortcodes($post->post_content)) {
             if ($index === false) {
                 $post_ids[] = $id;
                 $updated = true;

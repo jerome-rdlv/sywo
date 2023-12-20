@@ -2,42 +2,38 @@
 
 namespace Rdlv\WordPress\Sywo;
 
-use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
-use Symfony\Contracts\Service\ServiceSubscriberInterface;
 
-class RequestFactory implements ServiceSubscriberInterface
+class RequestFactory extends Request
 {
-    /** @var ContainerInterface */
-    private $locator;
-
-    public function __construct(ContainerInterface $locator)
+    public static function createRequest($query, $request, $attributes, $cookies, $files, $server, $content): Request
     {
-        $this->locator = $locator;
+        return new Request(
+            self::removeMagicQuotes($query),
+            self::removeMagicQuotes($request),
+            $attributes,
+            $cookies,
+            $files,
+            $server,
+            $content
+        );
     }
 
     /**
-     * @param RequestStack $requestStack
-     * @param SessionInterface $session
-     * @return Request|null
+     * @param $array
+     * @return mixed
+     * @see wp-includes/functions.php:add_magic_quotes()
      */
-    public function __invoke(RequestStack $requestStack): ?Request
+    private static function removeMagicQuotes($array)
     {
-        if ($request = $requestStack->getCurrentRequest()) {
-            if (!is_admin() && ($this->locator->has('session'))) {
-                $request->setSession($this->locator->get('session'));
+        foreach ((array)$array as $k => $v) {
+            if (is_array($v)) {
+                $array[$k] = self::removeMagicQuotes($v);
+            } elseif (is_string($v)) {
+                $array[$k] = stripslashes($v);
             }
-            return $request;
         }
-        return null;
-    }
 
-    public static function getSubscribedServices()
-    {
-        return [
-            'session' => '?' . SessionInterface::class,
-        ];
+        return $array;
     }
 }

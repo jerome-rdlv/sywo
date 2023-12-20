@@ -3,12 +3,11 @@
 use Rdlv\WordPress\Sywo\CsrfTokenManager;
 use Rdlv\WordPress\Sywo\CsrfTokenManagerFactory;
 use Rdlv\WordPress\Sywo\EventListener\RenderEventSubscriber;
+use Rdlv\WordPress\Sywo\EventListener\WebDebugToolbarListener;
 use Rdlv\WordPress\Sywo\FormHooks;
 use Rdlv\WordPress\Sywo\Hooks;
-use Rdlv\WordPress\Sywo\RequestFactory;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
@@ -36,19 +35,14 @@ return static function (ContainerConfigurator $container) {
             ->args([service('sywo.hooks')])
             ->tag('form.type_extension')
             ->alias(FormHooks::class, 'sywo.form_hooks')
-        ->set('sywo.request.factory', RequestFactory::class)
-            ->tag('container.service_subscriber')
-        ->set('request', Request::class)
-            ->factory(service('sywo.request.factory'))
-            ->args([
-                service('request_stack')->ignoreOnInvalid(),
-            ])
-            ->autowire()
-            ->public()
-            ->alias(Request::class, 'request')
         ->set('security.csrf.token_manager.wp', CsrfTokenManager::class)
             ->alias(CsrfTokenManager::class, 'security.csrf.token_manager.wp')
         ->set('security.csrf.token_manager.factory', CsrfTokenManagerFactory::class)
             ->tag('container.service_subscriber')
+        ->set('sywo.wdt', WebDebugToolbarListener::class)
+            ->call('setOriginal', [service('web_profiler.debug_toolbar')])
+            ->tag('container.service_subscriber')
+            ->tag('kernel.event_subscriber')
+            ->autowire()
     ;
 };

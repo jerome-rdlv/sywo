@@ -13,6 +13,20 @@ class RoutedShortcode implements ShortcodeListenerInterface
         $handler->add_listener($this);
 
         add_action('init', [$this, 'add_rewrite_rules']);
+
+        // undo trailing slash manipulations on page routes
+        add_filter('user_trailingslashit', function ($string) {
+            global $post;
+            if (!$post || !$this->handler->is_registered_post($post->ID)) {
+                return $string;
+            }
+            $path = '/' . trim(get_page_uri($post->ID), '/');
+            if (!preg_match('#^' . preg_quote($path) . '/.+#', $string)) {
+                return $string;
+            }
+            
+            return parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        });
     }
 
     public function add_rewrite_rules()

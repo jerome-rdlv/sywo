@@ -3,6 +3,7 @@
 namespace Rdlv\WordPress\Sywo\DependencyInjection;
 
 use Symfony\Bundle\FrameworkBundle\Command\TranslationUpdateCommand;
+use Symfony\Bundle\WebProfilerBundle\EventListener\WebDebugToolbarListener;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Console\Application;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -25,6 +26,10 @@ class SywoExtension extends Extension
             if (!class_exists(TranslationUpdateCommand::class)) {
                 $container->removeDefinition(TranslationUpdateCommand::class);
             }
+        }
+
+        if (!class_exists(WebDebugToolbarListener::class)) {
+            $container->removeDefinition('sywo.wdt');
         }
     }
 
