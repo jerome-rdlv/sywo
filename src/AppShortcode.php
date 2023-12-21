@@ -3,7 +3,6 @@
 namespace Rdlv\WordPress\Sywo;
 
 use Exception;
-use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
@@ -11,14 +10,8 @@ use Symfony\Component\HttpKernel\TerminableInterface;
 
 class AppShortcode implements ShortcodeListenerInterface
 {
-    /** @var string */
-    protected $protected;
-
-    /** @var KernelInterface */
-    protected $kernel;
-
-    /** @var string */
-    private $output;
+    protected KernelInterface $kernel;
+    private string $output = '';
 
     /** @var callable */
     private $configure;
@@ -29,10 +22,16 @@ class AppShortcode implements ShortcodeListenerInterface
         $this->kernel = $kernel;
     }
 
+    /**
+     * @throws Exception
+     */
     public function load(string $shortcode, array $attributes, $content): void
     {
         Request::setFactory(function ($query, $request, $attributes, $cookies, $files, $server, $content) {
-            $server['SCRIPT_NAME'] = rtrim(parse_url(get_permalink(), PHP_URL_PATH), '/') . $_SERVER['SCRIPT_NAME'];
+            $server['SCRIPT_NAME'] = rtrim(parse_url(get_permalink(), PHP_URL_PATH), '/').$_SERVER['SCRIPT_NAME'];
+            if ($server['REQUEST_URI'] === dirname($server['SCRIPT_NAME'])) {
+                $server['REQUEST_URI'] .= '/';
+            }
             return RequestFactory::createRequest($query, $request, $attributes, $cookies, $files, $server, $content);
         });
         $request = Request::createFromGlobals();
@@ -52,7 +51,7 @@ class AppShortcode implements ShortcodeListenerInterface
         }
     }
 
-    private function wrapResponse(Request $request, Response $response)
+    private function wrapResponse(Request $request, Response $response): void
     {
         // forward headers
         $headers = ['X-Debug-Token', 'Set-Cookie'];
@@ -79,7 +78,7 @@ class AppShortcode implements ShortcodeListenerInterface
         });
     }
 
-    private function isWrappedResponse(Request $request, Response $response)
+    private function isWrappedResponse(Request $request, Response $response): bool
     {
         if (!$request->get('_wrap')) {
             return false;
@@ -97,11 +96,11 @@ class AppShortcode implements ShortcodeListenerInterface
     }
 
     /**
-     * @param Request $request
-     * @param Response $response
+     * @param  Request  $request
+     * @param  Response  $response
      * @return void
      */
-    private function terminate(Request $request, Response $response)
+    private function terminate(Request $request, Response $response): void
     {
         if ($this->kernel instanceof TerminableInterface) {
             $this->kernel->terminate($request, $response);

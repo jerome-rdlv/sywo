@@ -29,7 +29,7 @@ class RoutedShortcode implements ShortcodeListenerInterface
         });
     }
 
-    public function add_rewrite_rules()
+    public function add_rewrite_rules(): void
     {
         foreach ($this->handler->get_registered_post_ids() as $id) {
             $uri = get_page_uri($id);
@@ -54,7 +54,7 @@ class RoutedShortcode implements ShortcodeListenerInterface
     {
     }
 
-    public function updated(string $shortcode, array $ids)
+    public function updated(string $shortcode, array $ids): void
     {
         set_transient('sywo_flush_rewrite_rules', true);
     }

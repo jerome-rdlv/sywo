@@ -40,7 +40,7 @@ return static function (ContainerConfigurator $container) {
         ->set('security.csrf.token_manager.factory', CsrfTokenManagerFactory::class)
             ->tag('container.service_subscriber')
         ->set('sywo.wdt', WebDebugToolbarListener::class)
-            ->call('setOriginal', [service('web_profiler.debug_toolbar')])
+            ->call('setWdt', [service('web_profiler.debug_toolbar')->nullOnInvalid()])
             ->tag('container.service_subscriber')
             ->tag('kernel.event_subscriber')
             ->autowire()

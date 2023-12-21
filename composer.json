@@ -18,12 +18,11 @@
     "require": {
         "symfony/console": "^5.4",
         "symfony/finder": "^5.4",
-        "symfony/http-kernel": "^5.4",
-        "wp-cli/i18n-command": "^2.0",
-        "wp-cli/wp-cli": "^2.0"
+        "symfony/http-kernel": "^5.4"
     },
     "suggest": {
         "symfony/framework-bundle": "For tight integration between symfony components",
-        "symfony/translation": "For translation update command"
+        "symfony/translation": "For translation update command",
+        "symfony/web-profiler-bundle": "For easy debug and profiling"
     }
 }

@@ -20,8 +20,6 @@ class RequestFactory extends Request
     }
 
     /**
-     * @param $array
-     * @return mixed
      * @see wp-includes/functions.php:add_magic_quotes()
      */
     private static function removeMagicQuotes($array)
@@ -33,7 +31,6 @@ class RequestFactory extends Request
                 $array[$k] = stripslashes($v);
             }
         }
-
         return $array;
     }
 }

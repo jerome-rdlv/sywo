@@ -3,22 +3,15 @@
 namespace Rdlv\WordPress\Sywo;
 
 use Exception;
-use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\KernelEvent;
-use Symfony\Component\HttpKernel\Event\RequestEvent;
-use Symfony\Component\HttpKernel\HttpKernel;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\Kernel as BaseKernel;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
-abstract class Kernel extends \Symfony\Component\HttpKernel\Kernel implements EventSubscriberInterface
+abstract class Kernel extends BaseKernel implements EventSubscriberInterface
 {
-    /** @var string */
-    private $namespace;
+    private string $namespace;
 
     public function __construct(string $namespace = 'sywo')
     {
@@ -26,11 +19,11 @@ abstract class Kernel extends \Symfony\Component\HttpKernel\Kernel implements Ev
 
         parent::__construct(
             defined('WP_ENVIRONMENT_TYPE') ? WP_ENVIRONMENT_TYPE : 'production',
-            defined('WP_DEBUG') ? WP_DEBUG : false
+            defined('WP_DEBUG') && WP_DEBUG
         );
     }
 
-    public function init(KernelEvent $event)
+    public function init(KernelEvent $event): void
     {
         if ($event->isMainRequest()) {
             /** @var Hooks $hooks */
@@ -39,20 +32,20 @@ abstract class Kernel extends \Symfony\Component\HttpKernel\Kernel implements Ev
         }
     }
 
-    protected function build(ContainerBuilder $container)
+    protected function build(ContainerBuilder $container): void
     {
         parent::build($container);
+        $container->setParameter('kernel.root_dir', $this->getProjectDir());
         $container->setParameter('sywo.namespace', $this->namespace);
     }
 
     /**
      * @throws Exception
-     * {@inheritdoc}
      */
     public function getBuildDir(): string
     {
         if (isset($_SERVER['APP_BUILD_DIR'])) {
-            return $_SERVER['APP_BUILD_DIR'] . '/' . $this->environment;
+            return $_SERVER['APP_BUILD_DIR'].'/'.$this->environment;
         }
 
         return parent::getCacheDir();
@@ -66,7 +59,7 @@ abstract class Kernel extends \Symfony\Component\HttpKernel\Kernel implements Ev
         return $this->namespace;
     }
 
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             KernelEvents::REQUEST => ['init'],

@@ -30,7 +30,7 @@ class Kernel extends \Rdlv\WordPress\Sywo\Kernel
 }
 ```
 
-This will allow to override templates at runtime:
+Following code will allow to override templates at runtime:
 
 ```php
 $hooks->add('init', function (ContainerInterface $container) {

@@ -2,7 +2,10 @@
 
 namespace Rdlv\WordPress\Sywo\EventListener;
 
+use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use Symfony\Bundle\WebProfilerBundle\EventListener\WebDebugToolbarListener as BaseWebDebugToolbarListener;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -12,27 +15,25 @@ use Symfony\Contracts\Service\ServiceSubscriberInterface;
 
 class WebDebugToolbarListener implements EventSubscriberInterface, ServiceSubscriberInterface
 {
-    /** @var ContainerInterface */
-    private $locator;
-
-    /** @var \Symfony\Bundle\WebProfilerBundle\EventListener\WebDebugToolbarListener */
-    private $original;
-
-    /**
-     * @param \Symfony\Bundle\WebProfilerBundle\EventListener\WebDebugToolbarListener $original
-     */
-    public function setOriginal(\Symfony\Bundle\WebProfilerBundle\EventListener\WebDebugToolbarListener $original): void
-    {
-        $this->original = $original;
-    }
+    private ContainerInterface $locator;
+    private ?BaseWebDebugToolbarListener $wdt;
 
     public function __construct(ContainerInterface $locator)
     {
         $this->locator = $locator;
     }
 
-    public function response(ResponseEvent $event)
+    public function setWdt(?BaseWebDebugToolbarListener $wdt): void
     {
+        $this->wdt = $wdt;
+    }
+
+    public function response(ResponseEvent $event): void
+    {
+        if (!$this->wdt) {
+            return;
+        }
+
         if (!$event->isMainRequest()) {
             return;
         }
@@ -45,21 +46,23 @@ class WebDebugToolbarListener implements EventSubscriberInterface, ServiceSubscr
         $content = $response->getContent();
 
         if (strripos($content, '</body>') !== false) {
+            // this is a complete page, no need to manipulate toolbar
             return;
         }
 
-        // response with no <body>, retreive the toolbar and insert it in page
+        try {
+            $kernel = $this->locator->get('http_kernel');
+        } catch (NotFoundExceptionInterface|ContainerExceptionInterface) {
+            return;
+        }
+
+        // response with no <body>, retrieve the toolbar and insert it in page
         $clone = new Response('</body>', $response->getStatusCode(), $response->headers->all());
 
-//        $wdt = $this->locator->get('web_profiler.debug_toolbar');
-        $wdt = $this->original;
-        $kernel = $this->locator->get('http_kernel');
-
         $responseEvent = new ResponseEvent($kernel, $event->getRequest(), $event->getRequestType(), $clone);
-        $wdt->onKernelResponse($responseEvent);
+        $this->wdt->onKernelResponse($responseEvent);
 
         $content = $responseEvent->getResponse()->getContent();
-
         $content = substr($content, 0, stripos($content, '</body>'));
 
         add_action('wp_footer', function () use ($content) {
@@ -67,21 +70,17 @@ class WebDebugToolbarListener implements EventSubscriberInterface, ServiceSubscr
         });
     }
 
-    /**
-     * @inheritDoc
-     */
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             KernelEvents::RESPONSE => ['response', -128],
         ];
     }
 
-    public static function getSubscribedServices()
+    public static function getSubscribedServices(): array
     {
         return [
-//            'web_profiler.debug_toolbar' => WebDebugToolbarListener::class,
-            'http_kernel' => '?' . HttpKernelInterface::class,
+            'http_kernel' => '?'.HttpKernelInterface::class,
         ];
     }
 }
