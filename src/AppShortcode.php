@@ -29,8 +29,12 @@ class AppShortcode implements ShortcodeListenerInterface
     {
         Request::setFactory(function ($query, $request, $attributes, $cookies, $files, $server, $content) {
             $server['SCRIPT_NAME'] = rtrim(parse_url(get_permalink(), PHP_URL_PATH), '/').$_SERVER['SCRIPT_NAME'];
-            if ($server['REQUEST_URI'] === dirname($server['SCRIPT_NAME'])) {
-                $server['REQUEST_URI'] .= '/';
+            $parts = parse_url($server['REQUEST_URI']);
+            if ($parts['path'] === dirname($server['SCRIPT_NAME'])) {
+                $server['REQUEST_URI'] = $parts['path'].'/';
+                if (!empty($parts['query'])) {
+                    $server['REQUEST_URI'] .= '?'.$parts['query'];
+                }
             }
             return RequestFactory::createRequest($query, $request, $attributes, $cookies, $files, $server, $content);
         });
