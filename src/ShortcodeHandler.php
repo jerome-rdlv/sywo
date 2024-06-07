@@ -60,7 +60,7 @@ class ShortcodeHandler
         global $post;
         if ($post && $this->is_registered_post($post->ID)) {
             if (($shortcodes = $this->get_shortcodes($post->post_content)) !== false) {
-                foreach ($shortcodes as $shortcode) {
+                foreach ($shortcodes ?? [] as $shortcode) {
                     $this->load($shortcode[0], $shortcode[1]);
                 }
             }
@@ -71,14 +71,14 @@ class ShortcodeHandler
     {
         $this->loaded = true;
         array_map(function (ShortcodeListenerInterface $listener) use ($attributes, $content) {
-            return $listener->load($this->shortcode, $attributes, $content);
+            return $listener->load($this->shortcode, $attributes ?: [], $content);
         }, $this->listeners);
     }
 
     public function output($attributes = [], $content = null): string
     {
         return implode('', array_map(function (ShortcodeListenerInterface $listener) use ($attributes, $content) {
-            return $listener->output($this->shortcode, $attributes, $content);
+            return $listener->output($this->shortcode, $attributes ?: [], $content);
         }, $this->listeners));
     }
 
@@ -151,7 +151,8 @@ class ShortcodeHandler
 
     public function get_registered_post_ids(): array
     {
-        return get_option($this->get_registered_option_name(), []);
+        $option = $this->get_registered_option_name();
+        return apply_filters($option, get_option($option, []));
     }
 
     private function save_registered_post_ids($ids): void
