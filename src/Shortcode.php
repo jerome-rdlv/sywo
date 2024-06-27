@@ -3,17 +3,35 @@
 namespace Rdlv\WordPress\Sywo;
 
 use Exception;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\KernelInterface;
 use WP_Post;
 
-class ShortcodeHandler
+class Shortcode extends App
 {
-    private array $listeners = [];
-    private string $shortcode;
+    /** @var callable|Request */
+    protected $request;
+
+    private string $output = '';
     private bool $loaded = false;
 
-    public function __construct(string $shortcode)
-    {
-        $this->shortcode = $shortcode;
+    public function __construct(
+        KernelInterface $kernel,
+        private readonly string $shortcode,
+        callable|Request $request = null,
+        private readonly PostRouting|bool $routed = true
+    ) {
+        parent::__construct($kernel);
+        $this->request = $request ?? function ($request) {
+            return $request;
+        };
+
+        // enable post routing
+        $routed && ($routed instanceof PostRouting ? $routed : new PostRouting())->filter(
+            function (bool $routed, int $post_id) {
+                return $this->is_registered_post($post_id);
+            }
+        );
 
         add_action('template_redirect', [$this, 'early_loading']);
         add_shortcode($shortcode, [$this, 'shortcode']);
@@ -31,18 +49,13 @@ class ShortcodeHandler
                     )
                 );
             }
-            echo $this->output($attributes, $content);
+            echo $this->output((array)$attributes, $content);
         });
     }
 
     public function get_shortcode(): string
     {
         return $this->shortcode;
-    }
-
-    public function add_listener(ShortcodeListenerInterface $listener): void
-    {
-        $this->listeners[] = $listener;
     }
 
     public function is_registered_post($post_id): bool
@@ -67,19 +80,25 @@ class ShortcodeHandler
         }
     }
 
+    /**
+     * @throws Exception
+     */
     public function load($attributes = [], $content = null): void
     {
         $this->loaded = true;
-        array_map(function (ShortcodeListenerInterface $listener) use ($attributes, $content) {
-            return $listener->load($this->shortcode, $attributes ?: [], $content);
-        }, $this->listeners);
+
+        $this->routed && Request::setFactory(new RoutedRequestFactory());
+
+        $request = is_callable($this->request)
+            ? call_user_func($this->request, Request::createFromGlobals(), $attributes, $content)
+            : $this->request;
+
+        $this->output = $this->_run($request)->getContent();
     }
 
     public function output($attributes = [], $content = null): string
     {
-        return implode('', array_map(function (ShortcodeListenerInterface $listener) use ($attributes, $content) {
-            return $listener->output($this->shortcode, $attributes ?: [], $content);
-        }, $this->listeners));
+        return $this->output ?? '';
     }
 
     /**
@@ -99,10 +118,7 @@ class ShortcodeHandler
                 )
             );
         }
-        return $this->output(
-            is_array($attributes) ? $attributes : (empty($attributes) ? [] : [$attributes]),
-            $content
-        );
+        return $this->output((array)$attributes, $content);
     }
 
     /**
@@ -137,10 +153,7 @@ class ShortcodeHandler
         }
 
         if ($updated) {
-            $this->save_registered_post_ids($post_ids);
-            array_map(function (ShortcodeListenerInterface $listener) use ($post_ids) {
-                return $listener->updated($this->shortcode, $post_ids);
-            }, $this->listeners);
+            update_option($this->get_registered_option_name(), $post_ids);
         }
     }
 
@@ -151,12 +164,6 @@ class ShortcodeHandler
 
     public function get_registered_post_ids(): array
     {
-        $option = $this->get_registered_option_name();
-        return apply_filters($option, get_option($option, []));
-    }
-
-    private function save_registered_post_ids($ids): void
-    {
-        update_option($this->get_registered_option_name(), $ids);
+        return get_option($this->get_registered_option_name(), []);
     }
 }

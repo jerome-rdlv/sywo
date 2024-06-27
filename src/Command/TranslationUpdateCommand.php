@@ -2,11 +2,13 @@
 
 namespace Rdlv\WordPress\Sywo\Command;
 
-use Symfony\Bundle\FrameworkBundle\Command\TranslationUpdateCommand as SfTranslationUpdateCommand;
 use Exception;
 use Rdlv\WordPress\Sywo\WpCliLogger;
 use ReflectionClass;
+use Symfony\Bundle\FrameworkBundle\Command\TranslationUpdateCommand as SfTranslationUpdateCommand;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\ExceptionInterface;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -18,18 +20,14 @@ use Symfony\Component\HttpKernel\KernelInterface;
 use WP_CLI;
 use WP_CLI\I18n\MakePotCommand;
 
+#[AsCommand('sywo:translations:update')]
 class TranslationUpdateCommand extends Command
 {
-    protected static $defaultName = 'sywo:translations:update';
+    private SfTranslationUpdateCommand $translationUpdateCommand;
 
-    /** @var SfTranslationUpdateCommand */
-    private $translationUpdateCommand;
-
-    private $defaultTransPath;
-    private $transPaths;
-
-    /** @var [] */
-    private $headers = null;
+    private ?string $defaultTransPath;
+    private array $transPaths;
+    private ?array $headers = null;
 
     public function __construct(
         SfTranslationUpdateCommand $translationUpdateCommand,
@@ -47,8 +45,10 @@ class TranslationUpdateCommand extends Command
     {
         $this->setDefinition(
             [
-                new InputArgument('bundle', InputArgument::OPTIONAL,
-                                  'The bundle name or directory where to load the messages'),
+                new InputArgument(
+                    'bundle', InputArgument::OPTIONAL,
+                    'The bundle name or directory where to load the messages'
+                ),
                 new InputOption('domain', 'd', InputOption::VALUE_REQUIRED, 'Specify the domain to extract'),
                 new InputOption('path', 'p', InputOption::VALUE_REQUIRED, 'Domain path (languages)'),
             ]
@@ -79,11 +79,7 @@ class TranslationUpdateCommand extends Command
         return self::SUCCESS;
     }
 
-    /**
-     * @param string $header
-     * @return mixed|null
-     */
-    private function getHeader(string $header)
+    private function getHeader(string $header): mixed
     {
         if ($this->headers === null) {
             $this->headers = [];
@@ -128,11 +124,7 @@ class TranslationUpdateCommand extends Command
     }
 
     /**
-     * @param $domain
-     * @param string $locale
-     * @param SymfonyStyle $output
-     * @return void
-     * @throws Exception
+     * @throws ExceptionInterface
      */
     protected function extractFromSymfony(InputInterface $input, OutputInterface $output): void
     {
@@ -166,8 +158,8 @@ class TranslationUpdateCommand extends Command
     }
 
     /**
-     * @param InputInterface $input
-     * @param SymfonyStyle $output
+     * @param  InputInterface  $input
+     * @param  SymfonyStyle  $output
      * @return void
      * @throws Exception
      */
@@ -193,22 +185,23 @@ class TranslationUpdateCommand extends Command
 
         $this->loadwpCli($output);
 
+        /** @noinspection PhpUndefinedClassInspection */
         $makePotCommand = new MakePotCommand();
         $makePotCommand($args, $assoc_args);
 
-        $regex = '/^"(' . implode('|', [
+        $regex = '/^"('.implode('|', [
                 'Report-Msgid-Bugs-To',
                 'Last-Translator',
                 'Language-Team',
                 'POT-Creation-Date',
                 'PO-Revision-Date',
-            ]) . '): /';
+            ]).'): /';
         file_put_contents($potPath, implode('', array_filter(file($potPath), function ($line) use ($regex) {
             return !preg_match($regex, $line);
         })));
     }
 
-    private function updateTranslations(InputInterface $input, SymfonyStyle $output)
+    private function updateTranslations(InputInterface $input, SymfonyStyle $output): void
     {
         $commands = [
             'msgmerge -V' => 'msgmerge command not available for PO file update.',
@@ -222,7 +215,7 @@ class TranslationUpdateCommand extends Command
         }
 
         $domain = $this->getDomain($input);
-        $path = $this->getProjectDir() . '/' . $this->getPath($input);
+        $path = $this->getProjectDir().'/'.$this->getPath($input);
 
         $finder = new Finder();
         $finder->files()->in($path)->name(sprintf('%s.*.po', $domain))->name(sprintf('%s+intl-icu.*.po', $domain));
@@ -247,30 +240,22 @@ class TranslationUpdateCommand extends Command
         }
     }
 
-    private function loadWpCli(OutputInterface $output)
+    private function loadWpCli(OutputInterface $output): void
     {
         $wpCliRoot = dirname(dirname((new ReflectionClass(WP_CLI::class))->getFileName()));
         if (!defined('WP_CLI_VERSION')) {
-            define('WP_CLI_VERSION', trim(file_get_contents($wpCliRoot . '/VERSION')));
+            define('WP_CLI_VERSION', trim(file_get_contents($wpCliRoot.'/VERSION')));
         }
         WP_CLI::set_logger(new WpCliLogger($output));
-        require_once $wpCliRoot . '/php/utils.php';
+        require_once $wpCliRoot.'/php/utils.php';
     }
 
-    /**
-     * @param InputInterface $input
-     * @return mixed|null
-     */
-    protected function getDomain(InputInterface $input)
+    protected function getDomain(InputInterface $input): mixed
     {
         return $input->getOption('domain') ?: $this->getHeader('TextDomain');
     }
 
-    /**
-     * @param InputInterface $input
-     * @return mixed|null
-     */
-    protected function getPath(InputInterface $input)
+    protected function getPath(InputInterface $input): string
     {
         return trim($input->getOption('path') ?: $this->getHeader('DomainPath') ?: 'translations', '/');
     }

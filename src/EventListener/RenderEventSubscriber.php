@@ -8,25 +8,18 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class RenderEventSubscriber implements EventSubscriberInterface
 {
-    /** @var Hooks */
-    private $hooks;
-
-    public function __construct(Hooks $hooks)
+    public function __construct(private Hooks $hooks)
     {
-        $this->hooks = $hooks;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             RenderEvent::class => 'filter',
         ];
     }
 
-    public function filter(RenderEvent $event)
+    public function filter(RenderEvent $event): void
     {
         $event->name = $this->hooks->filter('twig/render/template', $event->name, $event->context);
         $event->context = $this->hooks->filter('twig/render/context', $event->context, $event->name);

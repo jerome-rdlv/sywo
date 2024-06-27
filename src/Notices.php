@@ -11,29 +11,26 @@ class Notices
     public const STATUS_WARNING = 'warning';
     public const STATUS_INFO = 'info';
 
-    public $channel;
-
-    private $userId;
-
-    /** @var string */
-    private $key;
+    public string $channel;
+    private int $userId;
+    private string $key;
 
     public function __construct(string $channel = 'default')
     {
         $this->channel = $channel;
     }
 
-    private function getUserId()
+    private function getUserId(): int
     {
-        if (!$this->userId) {
+        if (!isset($this->userId)) {
             $this->userId = get_current_user_id();
         }
         return $this->userId;
     }
 
-    private function getKey()
+    private function getKey(): string
     {
-        if (!$this->key) {
+        if (!isset($this->key)) {
             $this->key = sprintf(
                 'notices_%s',
                 strtolower(preg_replace('/[^a-z0-9]+/i', '_', $this->channel))
@@ -67,8 +64,8 @@ class Notices
             $notices = [];
         }
         $notices[] = [
-            'message'     => $message,
-            'status'      => $status,
+            'message' => $message,
+            'status' => $status,
             'dismissible' => $isDismissible,
         ];
         update_user_meta($this->getUserId(), $this->getKey(), $notices);

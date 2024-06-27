@@ -6,12 +6,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class WpCliLogger
 {
-    /** @var OutputInterface */
-    private $output;
-
-    public function __construct(OutputInterface $output)
+    public function __construct(private OutputInterface $output)
     {
-        $this->output = $output;
     }
 
     public function __call($name, $arguments)

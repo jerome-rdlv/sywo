@@ -11,12 +11,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 abstract class Kernel extends BaseKernel implements EventSubscriberInterface
 {
-    private string $namespace;
-
-    public function __construct(string $namespace = 'sywo')
+    public function __construct(protected string $namespace = 'sywo')
     {
-        $this->namespace = $namespace;
-
         parent::__construct(
             defined('WP_ENVIRONMENT_TYPE') ? WP_ENVIRONMENT_TYPE : 'production',
             defined('WP_DEBUG') && WP_DEBUG

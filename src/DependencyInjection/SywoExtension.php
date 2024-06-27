@@ -2,6 +2,7 @@
 
 namespace Rdlv\WordPress\Sywo\DependencyInjection;
 
+use Exception;
 use Symfony\Bundle\FrameworkBundle\Command\TranslationUpdateCommand;
 use Symfony\Bundle\WebProfilerBundle\EventListener\WebDebugToolbarListener;
 use Symfony\Component\Config\FileLocator;
@@ -13,11 +14,11 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 class SywoExtension extends Extension
 {
     /**
-     * @inheritDoc
+     * @throws Exception
      */
-    public function load(array $configs, ContainerBuilder $container)
+    public function load(array $configs, ContainerBuilder $container): void
     {
-        $loader = new PhpFileLoader($container, new FileLocator(dirname(__DIR__, 2) . '/config'));
+        $loader = new PhpFileLoader($container, new FileLocator(dirname(__DIR__, 2).'/config'));
         $loader->load('services.php');
 
         if ($this->hasConsole()) {

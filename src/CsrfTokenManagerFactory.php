@@ -26,11 +26,11 @@ class CsrfTokenManagerFactory implements ServiceSubscriberInterface
         return $manager;
     }
 
-    public static function getSubscribedServices()
+    public static function getSubscribedServices(): array
     {
         return [
-            'security.csrf.token_manager.native' => '?' . CsrfTokenManagerNative::class,
-            'security.csrf.token_manager.wp'     => '?' . CsrfTokenManager::class,
+            'security.csrf.token_manager.native' => '?'.CsrfTokenManagerNative::class,
+            'security.csrf.token_manager.wp' => '?'.CsrfTokenManager::class,
         ];
     }
 }

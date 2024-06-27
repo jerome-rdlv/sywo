@@ -10,7 +10,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     /**
      * @inheritDoc
      */
-    public function getToken(string $tokenId)
+    public function getToken(string $tokenId): CsrfToken
     {
         return new CsrfToken($tokenId, wp_create_nonce($tokenId));
     }
@@ -18,7 +18,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     /**
      * @inheritDoc
      */
-    public function refreshToken(string $tokenId)
+    public function refreshToken(string $tokenId): CsrfToken
     {
         return new CsrfToken($tokenId, wp_create_nonce($tokenId));
     }
@@ -26,14 +26,15 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     /**
      * @inheritDoc
      */
-    public function removeToken(string $tokenId)
+    public function removeToken(string $tokenId): ?string
     {
+        return null;
     }
 
     /**
      * @inheritDoc
      */
-    public function isTokenValid(CsrfToken $token)
+    public function isTokenValid(CsrfToken $token): bool
     {
         return wp_verify_nonce($token->getValue(), $token->getId());
     }
