@@ -7,7 +7,7 @@ use WP_Post;
 class PostRouting
 {
     private const OPTION = 'sywo_routed_post_ids';
-    private const TRANSIENT = 'sywo_flush_rewrite_rules';
+    private const FLUSH_TRANSIENT = 'sywo_flush_rewrite_rules';
 
     /** @var callable[] */
     private array $filters = [];
@@ -60,21 +60,12 @@ class PostRouting
 
         if ($updated) {
             update_option(self::OPTION, $post_ids);
-            $this->flush();
+            set_transient(self::FLUSH_TRANSIENT, true);
         }
-    }
-
-    public function flush(): void
-    {
-        set_transient(self::TRANSIENT, true);
     }
 
     public function add_rewrite_rules(): void
     {
-        if (!get_transient(self::TRANSIENT)) {
-            return;
-        }
-
         foreach (get_option(self::OPTION, []) as $id) {
             $uri = get_page_uri($id);
             add_rewrite_rule(
@@ -84,7 +75,11 @@ class PostRouting
             );
         }
 
-        delete_transient(self::TRANSIENT);
+        if (!get_transient(self::FLUSH_TRANSIENT)) {
+            return;
+        }
+
+        delete_transient(self::FLUSH_TRANSIENT);
         add_action('shutdown', 'flush_rewrite_rules');
     }
 }
